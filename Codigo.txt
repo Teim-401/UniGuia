@@ -1,0 +1,118 @@
+import telebot 
+from telebot import types
+import logging
+
+# Configurar logs para reducir mensajes en la terminal
+logging.basicConfig(level=logging.CRITICAL)
+
+# Conexión con nuestro BOT
+TOKEN = '7567218231:AAF15mvlHY_8WDEQhPeLQeUjOzhLxAEnMvs'  
+bot = telebot.TeleBot(TOKEN)  
+
+# Creación de comandos simples como '/Start' y '/Help' 
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, '🎓 Bienvenido al Bot de Pensum de la Universidad de Oriente 📖\n\nHola! Soy tu asistente para obtener información sobre los pensum de diferentes carreras universitarias.')
+
+@bot.message_handler(commands=['help'])
+def send_help(message):
+    help_text = """🤖 *Ayuda - Comandos disponibles* 📌
+
+✅ */start* → Inicia el bot y recibe un mensaje de bienvenida.  
+✅ */help* → Muestra esta lista de comandos y cómo usarlos.  
+✅ */pensum* → Selecciona tu carrera y recibe el pensum en PDF.  
+
+🛠 *¿Cómo funciona?*  
+- Usa los comandos anteriores para interactuar con el bot.  
+- Para obtener el pensum, selecciona tu carrera y el bot te enviará el archivo PDF.  
+
+📩 *¿Necesitas ayuda adicional?*  
+Escríbeme y te asistiré con cualquier duda. 🚀"""
+    
+    bot.send_message(message.chat.id, help_text, parse_mode="Markdown")
+
+# Menú de selección de carrera (con botones normales)
+@bot.message_handler(commands=['pensum'])
+def send_pensum(message):
+    markup = types.ReplyKeyboardMarkup(row_width=2)
+
+    # Creando botones
+    carreras = [
+        "Ingeniería Civil", "Ingeniería de Petróleo", "Ingeniería de Sistemas",
+        "Ingeniería Eléctrica", "Ingeniería en Computación", "Ingeniería Industrial",
+        "Ingeniería Mecánica", "Ingeniería Química", "Arquitectura", "Medicina",
+        "Contaduría Pública", "Turismo", "Tecnología en Fabricación Mecánica",
+        "Tecnología Electrónica", "Administración de Empresas"
+    ]
+    
+    for carrera in carreras:
+        markup.add(types.KeyboardButton(carrera))
+
+    bot.send_message(message.chat.id, "Selecciona tu carrera:", reply_markup=markup)
+
+# Manejo de la selección de carrera y envío de PDF + descripción
+@bot.message_handler(func=lambda message: message.text in [
+    "Ingeniería Civil", "Ingeniería de Petróleo", "Ingeniería de Sistemas",
+    "Ingeniería Eléctrica", "Ingeniería en Computación", "Ingeniería Industrial",
+    "Ingeniería Mecánica", "Ingeniería Química", "Arquitectura", "Medicina",
+    "Contaduría Pública", "Turismo", "Tecnología en Fabricación Mecánica",
+    "Tecnología Electrónica", "Administración de Empresas"
+])
+def send_selected_pensum(message):
+    carrera = message.text
+
+    # Diccionario con descripciones de cada carrera
+    descripciones_carreras = {
+        "Ingeniería Civil": "Diseño, construcción y mantenimiento de infraestructuras como edificios y puentes.",
+        "Ingeniería de Petróleo": "Exploración y extracción de hidrocarburos para la producción de energía.",
+        "Ingeniería de Sistemas": "Desarrollo de software, estructura de datos y tecnología informática.",
+        "Ingeniería Eléctrica": "Estudio y aplicación de sistemas eléctricos y generación de energía.",
+        "Ingeniería en Computación": "Diseño y desarrollo de hardware, redes y programación avanzada.",
+        "Ingeniería Industrial": "Optimización de procesos y mejora de productividad en empresas.",
+        "Ingeniería Mecánica": "Diseño y desarrollo de maquinaria, motores y procesos mecánicos.",
+        "Ingeniería Química": "Aplicación de procesos químicos en la producción industrial.",
+        "Arquitectura": "Diseño y planificación de espacios funcionales y estéticos.",
+        "Medicina": "Diagnóstico y tratamiento de enfermedades en el ámbito de la salud.",
+        "Contaduría Pública": "Gestión financiera y administración económica en empresas.",
+        "Turismo": "Planificación y promoción de actividades turísticas.",
+        "Tecnología en Fabricación Mecánica": "Procesos avanzados en manufactura y producción mecánica.",
+        "Tecnología Electrónica": "Diseño y desarrollo de dispositivos electrónicos.",
+        "Administración de Empresas": "Gestión de negocios, planificación estratégica y liderazgo organizacional."
+    }
+
+    # Diccionario con los archivos PDF correspondientes
+    pensums_pdf = {
+        "Ingeniería Civil": "pensum_civil.pdf",
+        "Ingeniería de Petróleo": "pensum_petroleo.pdf",
+        "Ingeniería de Sistemas": "pensum_sistemas.pdf",
+        "Ingeniería Eléctrica": "pensum_electrica.pdf",
+        "Ingeniería en Computación": "pensum_computacion.pdf",
+        "Ingeniería Industrial": "pensum_industrial.pdf",
+        "Ingeniería Mecánica": "pensum_mecanica.pdf",
+        "Ingeniería Química": "pensum_quimica.pdf",
+        "Arquitectura": "pensum_arquitectura.pdf",
+        "Medicina": "pensum_medicina.pdf",
+        "Contaduría Pública": "pensum_contaduria.pdf",
+        "Turismo": "pensum_turismo.pdf",
+        "Tecnología en Fabricación Mecánica": "pensum_fabricacion.pdf",
+        "Tecnología Electrónica": "pensum_electronica.pdf",
+        "Administración de Empresas": "pensum_administracion.pdf"
+    }
+
+    # Enviar descripción primero
+    descripcion = descripciones_carreras.get(carrera, "Descripción no disponible.")
+    bot.send_message(message.chat.id, f"📌 *{carrera}*\n{descripcion}", parse_mode="Markdown")
+
+    # Luego enviar el PDF si existe
+    pdf_file = pensums_pdf.get(carrera)
+    if pdf_file:
+        try:
+            bot.send_document(message.chat.id, open(pdf_file, "rb"))
+        except FileNotFoundError:
+            bot.send_message(message.chat.id, f"Aún no tengo el pensum de {carrera}. ¡Pronto lo agregaré!")
+    else:
+        bot.send_message(message.chat.id, "No encontré el pensum de esta carrera.")
+
+# Mantener el bot activo
+if __name__ == "__main__":
+    bot.polling(none_stop=True, skip_pending=True)
